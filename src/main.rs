@@ -69,7 +69,7 @@ fn main() -> io::Result<()> {
     std::mem::drop(term);
     let took = start.elapsed();
     let fps = frames as f64 / took.as_secs_f64();
-    println!("{frames} frames in {took:?}. {fps}fps as {width}x{height}");
+    println!("{frames} frames in {took:?}. {fps}fps at {width}x{height}");
 
     Ok(())
 }
