@@ -63,10 +63,11 @@ fn main() -> io::Result<()> {
         for _ in 0..lines {
             matrix.add_random_line(&mut rng, width);
         }
-        timer.skip();
+        timer.tick();
         frames += 1;
     }
     std::mem::drop(term);
+
     let took = start.elapsed();
     let fps = frames as f64 / took.as_secs_f64();
     println!("{frames} frames in {took:?}. {fps}fps at {width}x{height}");
