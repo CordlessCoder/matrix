@@ -1,0 +1,9 @@
+[package]
+name = "screensaver-matrix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colorsys = "0.6.7"
+crossterm = "0.27.0"
+rand = "0.8.5"
