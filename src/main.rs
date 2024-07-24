@@ -89,12 +89,7 @@ impl Line {
     pub fn in_bounds(&self, width: u16, height: u16) -> bool {
         self.x < width && self.y.saturating_sub(self.length) < height
     }
-    pub fn draw(
-        &mut self,
-        mut writer: impl Write,
-        mut rng: impl Rng,
-        height: u16,
-    ) -> io::Result<()> {
+    pub fn draw(&mut self, mut writer: impl Write, rng: impl Rng, height: u16) -> io::Result<()> {
         let make_color = |brightness: f32| Color::Rgb {
             r: (self.r as f32 * brightness) as u8,
             g: (self.g as f32 * brightness) as u8,
