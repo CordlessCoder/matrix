@@ -59,7 +59,10 @@ fn main() -> io::Result<()> {
                 _ => (),
             }
         }
-        matrix.add_random_line(&mut rng, width);
+        let lines = rng.gen_range(1..=width / 30);
+        for _ in 0..lines {
+            matrix.add_random_line(&mut rng, width);
+        }
         timer.skip();
         frames += 1;
     }
