@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 colorsys = "0.6.7"
 crossterm = "0.27.0"
-rand = "0.8.5"
+rand = { version = "0.8.5", features = ["small_rng"] }
