@@ -36,7 +36,7 @@ fn main() -> io::Result<()> {
 
     let mut matrix = Matrix::new();
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let start = Instant::now();
 
     'render: loop {
@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
                 _ => (),
             }
         }
-        let lines = rng.gen_range(1..=width / 30);
+        let lines = rng.random_range(1..=width / 30);
         for _ in 0..lines {
             matrix.add_random_line(&mut rng, width);
         }
@@ -107,7 +107,7 @@ impl Line {
         };
         let top = self.y as i16 - self.length as i16;
         let rng = rand::rngs::SmallRng::seed_from_u64(self.seed);
-        let mut chars = rng.sample_iter(rand::distributions::Alphanumeric);
+        let mut chars = rng.sample_iter(rand::distr::Alphanumeric);
         let points = (top..(self.y as u16).min(height) as i16)
             .enumerate()
             .skip(-top.min(0) as usize)
@@ -141,17 +141,17 @@ impl Matrix {
     fn add_random_line(&mut self, mut rng: impl Rng, width: u16) {
         let color = Hsl::new(
             120.0,
-            rng.gen_range(80.0..=100.),
-            rng.gen_range(80.0..=100.),
+            rng.random_range(80.0..=100.),
+            rng.random_range(80.0..=100.),
             None,
         );
         self.add_line(Line {
-            x: rng.gen_range(0..width),
+            x: rng.random_range(0..width),
             y: 0.0,
-            length: rng.gen_range(3.0..=15.0),
-            speed: rng.gen_range(0.5..=1.5),
+            length: rng.random_range(3.0..=15.0),
+            speed: rng.random_range(0.5..=1.5),
             color,
-            seed: rng.gen(),
+            seed: rng.random(),
         })
     }
     fn draw(&mut self, mut writer: impl Write, width: u16, height: u16) -> io::Result<()> {
