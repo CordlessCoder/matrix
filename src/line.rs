@@ -9,15 +9,25 @@ use std::io::{self, Write};
 
 #[derive(Debug, Clone)]
 pub struct Line {
-    pub x: u16,
-    pub y: f32,
-    pub length: u16,
-    pub speed: f32,
-    pub seed: u64,
+    x: u16,
+    y: f32,
+    length: u16,
+    speed: f32,
+    seed: u64,
 }
 
 impl Line {
-    pub fn step(&mut self) {
+    pub fn new(rng: &mut impl Rng, width: u16) -> Line {
+        let length = rng.random_range(3..=15);
+        Line {
+            x: rng.random_range(0..width),
+            y: -(length as f32),
+            length,
+            speed: rng.random_range(0.5..=1.5),
+            seed: rng.random(),
+        }
+    }
+    pub fn advance(&mut self) {
         self.y += self.speed;
     }
     pub fn in_bounds(&self, width: u16, height: u16) -> bool {

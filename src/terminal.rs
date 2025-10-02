@@ -14,6 +14,7 @@ pub fn try_read_event(timeout: Duration) -> io::Result<Option<Event>> {
     Ok(None)
 }
 
+/// An RAII wrapper
 pub struct Terminal<W: Write> {
     writer: W,
     raw: bool,
@@ -24,10 +25,7 @@ pub struct Terminal<W: Write> {
 
 impl<W: Write> Drop for Terminal<W> {
     fn drop(&mut self) {
-        _ = self.enable_wrapping();
-        _ = self.show_cursor();
-        _ = self.leave_alternate();
-        _ = self.make_cooked();
+        _ = self.reset();
     }
 }
 
@@ -131,6 +129,12 @@ impl<W: Write> Terminal<W> {
         self.writer.queue(term::EnableLineWrap)?;
         self.wrapping = true;
         Ok(())
+    }
+    pub fn reset(&mut self) -> io::Result<()> {
+        self.enable_wrapping()?;
+        self.show_cursor()?;
+        self.leave_alternate()?;
+        self.make_cooked()
     }
 }
 impl<W: Write + crossterm::tty::IsTty> Terminal<W> {

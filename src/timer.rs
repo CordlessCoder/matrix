@@ -20,16 +20,16 @@ impl Timer {
         Timer::new(Duration::from_nanos(1_000_000_000 / framerate))
     }
 
+    /// Number of .tick() calls since this Timer was created.
     pub fn ticks(&self) -> u64 {
         self.tick_count
     }
     pub fn tick(&mut self) {
-        self.tick_count = self.tick_count.wrapping_add(1);
         std::thread::sleep(self.left());
-        self.last_tick = Instant::now();
+        self.skip();
     }
-    #[expect(unused)]
     pub fn skip(&mut self) {
+        self.tick_count += 1;
         self.last_tick = Instant::now();
     }
     /// Return the amount of time until the next tick
