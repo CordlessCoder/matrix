@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
                 _ => (),
             }
         }
-        let lines = rng.random_range(1..=width / 30);
+        let lines = rng.random_range(1..=(width / 30).max(1));
         for _ in 0..lines {
             matrix.add_random_line(&mut rng, width);
         }
@@ -87,7 +87,6 @@ struct Line {
     length: f32,
     speed: f32,
     seed: u64,
-    color: Hsl,
 }
 
 impl Line {
@@ -97,9 +96,9 @@ impl Line {
     pub fn in_bounds(&self, width: u16, height: u16) -> bool {
         self.x < width && self.y - self.length < height as f32
     }
-    pub fn draw(&mut self, mut writer: impl Write, height: u16) -> io::Result<()> {
+    pub fn draw(&mut self, mut writer: impl Write, height: u16, color: Hsl) -> io::Result<()> {
         let make_color = |brightness: f32| {
-            let mut new = self.color.clone();
+            let mut new = color.clone();
             new.set_lightness(brightness as f64 * 100.0);
             let rgb: Rgb = new.into();
             let [r, g, b] = rgb.into();
@@ -127,6 +126,10 @@ impl Line {
 #[derive(Debug, Clone)]
 struct Matrix {
     lines: Vec<Line>,
+    // ptr, len, cap
+    // |
+    // V
+    // [Line, Line]
 }
 
 impl Matrix {
@@ -139,30 +142,24 @@ impl Matrix {
         self.lines.push(line)
     }
     fn add_random_line(&mut self, mut rng: impl Rng, width: u16) {
-        let color = Hsl::new(
-            120.0,
-            rng.random_range(80.0..=100.),
-            rng.random_range(80.0..=100.),
-            None,
-        );
         self.add_line(Line {
             x: rng.random_range(0..width),
             y: 0.0,
             length: rng.random_range(3.0..=15.0),
             speed: rng.random_range(0.5..=1.5),
-            color,
             seed: rng.random(),
         })
     }
     fn draw(&mut self, mut writer: impl Write, width: u16, height: u16) -> io::Result<()> {
+        let color = Hsl::new(120.0, 100., 100., None);
         writer.sync_update(|mut writer| -> io::Result<()> {
             queue!(writer, Clear(ClearType::All))?;
             #[allow(clippy::needless_borrows_for_generic_args)]
             self.lines.retain_mut(|line| {
-                _ = line.draw(&mut writer, height);
-                let keep = line.in_bounds(width, height);
+                let mut color = color.clone();
+                _ = line.draw(&mut writer, height, color);
                 line.step();
-                keep
+                line.in_bounds(width, height)
             });
             Ok(())
         })?
