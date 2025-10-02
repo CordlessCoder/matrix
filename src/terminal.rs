@@ -83,6 +83,7 @@ impl<W: Write> Terminal<W> {
         self.alternate = false;
         Ok(())
     }
+    #[expect(unused)]
     pub fn make_raw_nontty(&mut self) -> io::Result<()> {
         if self.raw {
             return Ok(());

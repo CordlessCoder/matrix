@@ -1,23 +1,29 @@
-#![allow(unused)]
-use colorsys::{Hsl, Rgb};
+use colorsys::Hsl;
 use crossterm::{
-    cursor::MoveTo,
     event::{Event, KeyCode, KeyEvent, KeyModifiers},
     queue,
-    style::{Color, SetForegroundColor},
     terminal::{Clear, ClearType},
     SynchronizedUpdate,
 };
-use rand::{Rng, SeedableRng};
+use rand::Rng;
 use std::{
     io::{self, stdout, Write},
+    sync::atomic::{AtomicBool, Ordering},
     time::{Duration, Instant},
 };
 
+use crate::line::Line;
+
+mod line;
 mod terminal;
 mod timer;
 
+static STOP_REQUEST: AtomicBool = AtomicBool::new(false);
+
 fn main() -> io::Result<()> {
+    _ = ctrlc::set_handler(|| {
+        STOP_REQUEST.store(true, Ordering::Release);
+    });
     let stdout = stdout().lock();
     let mut term = terminal::Terminal::new(stdout);
     term.make_raw()?;
@@ -39,11 +45,14 @@ fn main() -> io::Result<()> {
     let mut rng = rand::rng();
     let start = Instant::now();
 
-    'render: loop {
+    'render: while !STOP_REQUEST.load(Ordering::Acquire) {
         matrix.draw(&mut term, width, height)?;
+        term.flush()?;
 
-        while !timer.left().is_zero() {
-            let event = terminal::try_read_event(timer.left())?;
+        let mut first_wait = true;
+        while first_wait || !timer.left().is_zero() {
+            first_wait = false;
+            let event = terminal::try_read_event(timer.left().max(Duration::from_nanos(1)))?;
             let Some(event) = event else { break };
             match event {
                 Event::Resize(nw, nh) => {
@@ -74,55 +83,16 @@ fn main() -> io::Result<()> {
         let frames = timer.ticks();
         let took = start.elapsed();
         let fps = frames as f64 / took.as_secs_f64();
-        println!("{frames} frames in {took:?}. {fps}fps at {width}x{height}");
+        let cells = frames * width as u64 * height as u64;
+        let cps = cells as f64 / took.as_secs_f64();
+        eprintln!(
+            "{frames} frames in {took:?}. {fps:.2}fps at {width}x{height}, {cps:.0} cells per second"
+        );
     }
 
     Ok(())
 }
 
-#[derive(Debug, Clone)]
-struct Line {
-    x: u16,
-    y: f32,
-    length: f32,
-    speed: f32,
-    seed: u64,
-}
-
-impl Line {
-    pub fn step(&mut self) {
-        self.y += self.speed;
-    }
-    pub fn in_bounds(&self, width: u16, height: u16) -> bool {
-        self.x < width && self.y - self.length < height as f32
-    }
-    pub fn draw(&mut self, mut writer: impl Write, height: u16, color: Hsl) -> io::Result<()> {
-        let make_color = |brightness: f32| {
-            let mut new = color.clone();
-            new.set_lightness(brightness as f64 * 100.0);
-            let rgb: Rgb = new.into();
-            let [r, g, b] = rgb.into();
-            Color::Rgb { r, g, b }
-        };
-        let top = self.y as i16 - self.length as i16;
-        let rng = rand::rngs::SmallRng::seed_from_u64(self.seed);
-        let mut chars = rng.sample_iter(rand::distr::Alphanumeric);
-        let points = (top..(self.y as u16).min(height) as i16)
-            .enumerate()
-            .skip(-top.min(0) as usize)
-            .map(|(point, y)| (y as u16, ((point + 1) as f32) / self.length));
-        for (y, value) in points {
-            queue!(
-                writer,
-                MoveTo(self.x, y),
-                SetForegroundColor(make_color(0.1 + (value * 0.7 * (self.speed / 1.5 * 0.8)))),
-            )?;
-            _ = writer.write(&[chars.next().unwrap()])?;
-        }
-
-        Ok(())
-    }
-}
 #[derive(Debug, Clone)]
 struct Matrix {
     lines: Vec<Line>,
@@ -142,10 +112,11 @@ impl Matrix {
         self.lines.push(line)
     }
     fn add_random_line(&mut self, mut rng: impl Rng, width: u16) {
+        let length = rng.random_range(3..=15);
         self.add_line(Line {
             x: rng.random_range(0..width),
-            y: 0.0,
-            length: rng.random_range(3.0..=15.0),
+            y: -(length as f32),
+            length,
             speed: rng.random_range(0.5..=1.5),
             seed: rng.random(),
         })
@@ -154,10 +125,8 @@ impl Matrix {
         let color = Hsl::new(120.0, 100., 100., None);
         writer.sync_update(|mut writer| -> io::Result<()> {
             queue!(writer, Clear(ClearType::All))?;
-            #[allow(clippy::needless_borrows_for_generic_args)]
             self.lines.retain_mut(|line| {
-                let mut color = color.clone();
-                _ = line.draw(&mut writer, height, color);
+                _ = line.draw(&mut writer, height, color.clone());
                 line.step();
                 line.in_bounds(width, height)
             });

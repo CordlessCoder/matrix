@@ -24,9 +24,11 @@ impl Timer {
         self.tick_count
     }
     pub fn tick(&mut self) {
+        self.tick_count = self.tick_count.wrapping_add(1);
         std::thread::sleep(self.left());
         self.last_tick = Instant::now();
     }
+    #[expect(unused)]
     pub fn skip(&mut self) {
         self.last_tick = Instant::now();
     }
