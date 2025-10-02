@@ -3,58 +3,60 @@ import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.screen.*;
 import com.googlecode.lanterna.terminal.*;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.util.Random;
 
 public class Main {
-    public static void main(String[] args) {
-        var terminalFactory = new DefaultTerminalFactory();
+    public static void main(final String[] args) {
+        final var terminalFactory = new DefaultTerminalFactory();
         try (var terminal = terminalFactory.createTerminal()) {
             try (var screen = new TerminalScreen(terminal)) {
                 screen.startScreen();
                 screen.setCursorPosition(null);
-                Random random = new Random();
 
-                var matrix = new Matrix(screen);
+                final Random random = new Random();
+                final var matrix = new Matrix(screen);
+
+                final var color = new TextColor.RGB(0, 255, 0);
+
                 boolean running = true;
-                var color = new TextColor.RGB(0, 255, 0);
                 while (running) {
-                    long startTime = System.currentTimeMillis();
+                    final long startTime = System.currentTimeMillis();
                     screen.doResizeIfNecessary();
                     screen.clear();
                     matrix.removeOffScreen();
                     matrix.draw(color);
                     matrix.advance();
-                    screen.refresh(Screen.RefreshType.DELTA);
-                    int width = screen.getTerminalSize().getColumns();
-                    int lines = random.nextInt(1, width / 30 + 1);
+                    screen.refresh(Screen.RefreshType.COMPLETE);
+                    final int width = screen.getTerminalSize().getColumns();
+                    final int lines = random.nextInt(1, width / 30 + 1);
                     for (int i = 0; i < lines; i++) {
                         matrix.addLine(random);
                     }
                     while (true) {
-                        long left = startTime + (1000 / 30) - System.currentTimeMillis();
+                        final long left = startTime + (1000 / 30) - System.currentTimeMillis();
                         if (left <= 0) {
                             break;
                         }
-                        KeyStroke input = screen.pollInput();
+                        final KeyStroke input = screen.pollInput();
                         if (input != null) {
-                            Character c = input.getCharacter();
-                            if (c != null && Character.toLowerCase(c) == 'q') {
+                            final Character c = input.getCharacter();
+                            if (Character.toLowerCase(c) == 'q') {
                                 running = false;
                                 break;
                             }
+                            continue;
                         }
                         try {
                             Thread.sleep(left);
-                        } catch (InterruptedException ignore) {
+                        } catch (final InterruptedException ignore) {
                             break;
                         }
                     }
                 }
                 screen.stopScreen();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
     }

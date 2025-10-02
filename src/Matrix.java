@@ -8,29 +8,29 @@ public class Matrix {
     private final ArrayList<Line> lines = new ArrayList<>();
     private final TerminalScreen screen;
 
-    public Matrix(TerminalScreen screen) {
+    public Matrix(final TerminalScreen screen) {
         this.screen = screen;
     }
 
-    public void draw(TextColor.RGB color) {
-        for (var line : lines) {
+    public void draw(final TextColor.RGB color) {
+        for (final var line : lines) {
             line.draw(screen, color);
         }
     }
 
     public void advance() {
-        for (var line : lines) {
+        for (final var line : lines) {
             line.advance();
         }
     }
 
-    public void addLine(Random rng) {
-        var line = new Line(rng, (short) screen.getTerminalSize().getColumns());
+    public void addLine(final Random rng) {
+        final var line = new Line(rng, (short) screen.getTerminalSize().getColumns());
         lines.add(line);
     }
 
     public void removeOffScreen() {
-        int height = screen.getTerminalSize().getRows();
+        final int height = screen.getTerminalSize().getRows();
         lines.removeIf(l -> l.offScreen(height));
     }
 }
