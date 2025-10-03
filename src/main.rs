@@ -1,5 +1,5 @@
-use crate::matrix::Matrix;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use matrix::Matrix;
 use rand::Rng;
 use std::{
     io::{self, stdout, Write},
@@ -14,9 +14,18 @@ mod timer;
 static STOP_REQUEST: AtomicBool = AtomicBool::new(false);
 
 fn main() -> io::Result<()> {
-    _ = ctrlc::set_handler(|| {
-        STOP_REQUEST.store(true, Ordering::Release);
-    });
+    unsafe {
+        // SAFETY: The SIGINT callback must only perform async-singal-unsafe operations, as defined
+        // by POSIX.
+        // The only operation it performs is an atomic store, which is allowed.
+        //
+        // The ctrlc crate, and the [signal_hook::flag] api provide safe ways to set a flag on a
+        // signal, but they require an extra allocation in case of flag, and a background thread
+        // for ctrlc.
+        signal_hook::low_level::register(signal_hook::consts::SIGINT, || {
+            STOP_REQUEST.store(true, Ordering::Release)
+        })?;
+    }
     // Initialize the terminal
     let stdout = stdout().lock();
     let mut term = terminal::Terminal::new(stdout);
