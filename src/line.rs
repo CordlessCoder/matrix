@@ -7,7 +7,7 @@ use crossterm::{
 use rand::{Rng, SeedableRng};
 use std::io::{self, Write};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Line {
     x: u16,
     y: f32,
